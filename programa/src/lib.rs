@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 // En Solana Playground este valor se reemplaza solo al hacer "Build" (ver docs/GUIA-DESPLIEGUE.md).
 // Si trabajas fuera de Playground, pega aqui el Program ID publico de tu despliegue.
-declare_id!("11111111111111111111111111111111");
+declare_id!("2pqFML2uKMCM2VDAj1gHtLcmzEvEr7o274oEf67nrLGD");
 
 #[program]
 pub mod bitacora_inventario {
