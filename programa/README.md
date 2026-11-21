@@ -63,7 +63,7 @@ Abre `http://localhost:5173` en un navegador con una wallet (Phantom, Solflare o
 
 ### Opción B: desplegar tu propia copia del programa
 
-Si quieres tu propio Program ID, sigue **[`docs/GUIA-DESPLIEGUE.md`](./docs/GUIA-DESPLIEGUE.md)** (Playground → exportar IDL → `npm run configurar:idl`).
+Si quieres tu propio Program ID, sigue **[`docs/GUIA-DESPLIEGUE.md`](../docs/GUIA-DESPLIEGUE.md)** (Playground → exportar IDL → `npm run configurar:idl`).
 
 > 🔐 La app nunca contiene ni pide claves privadas. La wallet que conectes será la autoridad de los almacenes que crees. Usa una wallet solo para pruebas.
 
@@ -71,7 +71,7 @@ Si quieres tu propio Program ID, sigue **[`docs/GUIA-DESPLIEGUE.md`](./docs/GUIA
 
 - `npm run verificar`: typecheck, 14 pruebas automatizadas (semillas, serialización, decodificación de cuentas, validaciones, manejo de errores y contrato del IDL) y build. No envían transacciones.
 - `programa/client/client.ts`: recorrido completo en Playground contra el programa desplegado, incluidos tres casos que deben rechazarse (salida mayor al stock, cantidad cero y folio repetido).
-- [`docs/PRUEBAS-MANUALES.md`](./docs/PRUEBAS-MANUALES.md): recorrido manual desde la app.
+- [`docs/PRUEBAS-MANUALES.md`](../docs/PRUEBAS-MANUALES.md): recorrido manual desde la app.
 - Transacción y cuentas verificables en la tabla de evidencia on-chain.
 
 ## Mi aporte
@@ -87,7 +87,7 @@ La base de partida era un registro de ventas con tres cuentas (negocio, cliente 
 - **Herramientas y pruebas:** validador de contrato de IDL para el nuevo modelo (acepta formato moderno y legacy), 14 pruebas automatizadas y un script de pruebas para Playground.
 - **Documentación:** guía de despliegue, pruebas manuales y análisis de límites del diseño.
 
-Límites que reconozco: la bitácora no es un historial permanente (anular cierra la cuenta y cada artículo admite 10 movimientos activos), hay una sola autoridad por almacén y el programa no está auditado. Están detallados en [`docs/SEGURIDAD-Y-ALCANCE.md`](./docs/SEGURIDAD-Y-ALCANCE.md).
+Límites que reconozco: la bitácora no es un historial permanente (anular cierra la cuenta y cada artículo admite 10 movimientos activos), hay una sola autoridad por almacén y el programa no está auditado. Están detallados en [`docs/SEGURIDAD-Y-ALCANCE.md`](../docs/SEGURIDAD-Y-ALCANCE.md).
 
 ## ¿Dónde está cada cosa?
 
@@ -113,7 +113,7 @@ Si cambias `idl.json`, ejecuta `npm run cliente`. Conserva juntos `idl.json`, `s
 npm run verificar
 ```
 
-Ejecuta TypeScript, las pruebas automatizadas y el build. Las pruebas **no envían transacciones**: completa el recorrido de [pruebas manuales](./docs/PRUEBAS-MANUALES.md) y ejecuta `programa/client/client.ts` en Playground.
+Ejecuta TypeScript, las pruebas automatizadas y el build. Las pruebas **no envían transacciones**: completa el recorrido de [pruebas manuales](../docs/PRUEBAS-MANUALES.md) y ejecuta `programa/client/client.ts` en Playground.
 
 ## Si algo no funciona
 
@@ -126,7 +126,7 @@ Ejecuta TypeScript, las pruebas automatizadas y el build. Las pruebas **no enví
 | RPC con límite de uso | Espera, o configura otro endpoint de Devnet en `.env.local` (ver `.env.example`). |
 | Cambiaste el IDL y falla la comprobación | `npm run cliente` y reinicia el servidor. |
 
-Revisa [seguridad y alcance](./docs/SEGURIDAD-Y-ALCANCE.md) para conocer los límites del diseño.
+Revisa [seguridad y alcance](../docs/SEGURIDAD-Y-ALCANCE.md) para conocer los límites del diseño.
 
 ## Origen
 
