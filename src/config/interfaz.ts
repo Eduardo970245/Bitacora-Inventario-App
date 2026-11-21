@@ -1,4 +1,4 @@
-// Tres cambios pequeños para familiarizarte con el proyecto.
-export const TITULO_APP = 'Registro de ventas';
-export const NEGOCIO_INICIAL = 'Cafe WayLearn D1';
-export const UNIDAD_MONTO = 'unidades';
+// Textos y valores iniciales de la interfaz.
+export const TITULO_APP = 'Bitácora de inventario';
+export const ALMACEN_INICIAL = 'Almacen Central';
+export const UNIDAD_INICIAL = 'pza';

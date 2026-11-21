@@ -1,12 +1,12 @@
 {
-  "name": "WayLearn - Registro de Ventas",
+  "name": "Bitacora de Inventario - Solana",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
   "postCreateCommand": "npm ci && npm run cliente",
   "remoteUser": "node",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
-      "label": "Registro de ventas",
+      "label": "Bitacora de inventario",
       "onAutoForward": "openBrowser"
     }
   }

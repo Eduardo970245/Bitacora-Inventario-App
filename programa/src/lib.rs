@@ -1,334 +1,396 @@
 use anchor_lang::prelude::*;
 
-declare_id!("");
+// En Solana Playground este valor se reemplaza solo al hacer "Build" (ver docs/GUIA-DESPLIEGUE.md).
+// Si trabajas fuera de Playground, pega aqui el Program ID publico de tu despliegue.
+declare_id!("11111111111111111111111111111111");
 
 #[program]
-pub mod registro {
-    use super::*; // Importa todos los structs y enums definidos fuera del modulo
+pub mod bitacora_inventario {
+    use super::*;
 
     /////////////////////////// INSTRUCCIONES ///////////////////////////
-    /////////////////////////// Crear Registro ///////////////////////////
-    pub fn crear_registro(context: Context<NuevoRegistro>, nombre_negocio: String) -> Result<()> {
-        context.accounts.registro.set_inner(Registro {
-            owner: context.accounts.owner.key(),    // caller wallet
-            nombre_negocio: nombre_negocio.clone(), // .clone() porque el String se reusa en el msg!
-            clientes: Vec::new(), // El negocio nace sin clientes. Guardara PDAs, no structs
-            id_counter: 0,        // Contador incremental, asigna un id unico a cada cliente
-        }); // Crea el struct del registro, lo serializa y lo guarda en el espacio de la cuenta
 
-        msg!("Registro: {} creado exitosamente!", nombre_negocio); // Log de verificacion
-
-        Ok(())
-    }
-
-    /////////////////////////// Nuevo Cliente ///////////////////////////
-    // "init" no puede ser condicional: Anchor crea las cuentas antes de entrar al handler.
-    // Por eso el alta del cliente es su propia instruccion, separada de registrar_venta.
-    pub fn crear_cliente(context: Context<NuevoCliente>, nombre: String) -> Result<()> {
-        let cliente_key = context.accounts.cliente.key(); // Se lee ANTES del &mut para no solapar prestamos
-
-        let registro = &mut context.accounts.registro;
-
-        // El id no es un argumento: lo asigna el programa. El contexto ya derivo la cuenta a
-        // partir de este mismo valor, asi que aqui solo se confirma en el estado.
-        let id_cliente = registro.id_counter + 1;
-        registro.id_counter = id_cliente;
-        registro.clientes.push(cliente_key); // El registro guarda la PDA del cliente, no sus datos
-
-        context.accounts.cliente.set_inner(Cliente {
-            id_cliente,
-            nombre: nombre.clone(), // .clone() para no ceder la propiedad porque el String se reusa en el msg!
-            compras: 0,             // Nace sin compras: registrar_venta es quien incrementa
-            historial: Vec::new(),
+    /////////////////////////// Crear Almacen ///////////////////////////
+    pub fn crear_almacen(context: Context<NuevoAlmacen>, nombre_almacen: String) -> Result<()> {
+        context.accounts.almacen.set_inner(Almacen {
+            owner: context.accounts.owner.key(), // wallet que firma: sera la autoridad del almacen
+            nombre_almacen: nombre_almacen.clone(),
+            articulos: Vec::new(), // Guarda las PDAs de los articulos, no los articulos completos
+            id_counter: 0,         // Contador incremental: asigna el id de cada articulo
         });
 
-        msg!("Cliente {} creado con id: {}", nombre, id_cliente); // Log de verificacion
-
+        msg!("Almacen: {} creado exitosamente!", nombre_almacen);
         Ok(())
     }
 
-    /////////////////////////// Registrar Venta ///////////////////////////
-    // id_cliente y sku no se usan en el cuerpo: viajan al contexto para derivar y validar
-    // las cuentas. Ver NuevaVenta.
-    pub fn registrar_venta(
-        context: Context<NuevaVenta>,
-        _id_cliente: u16,
-        sku: String,
-        descripcion: String,
-        monto: u32,
+    /////////////////////////// Crear Articulo ///////////////////////////
+    pub fn crear_articulo(
+        context: Context<NuevoArticulo>,
+        nombre: String,
+        unidad: String,
     ) -> Result<()> {
-        context.accounts.venta.set_inner(Venta {
-            sku,
-            descripcion,
-            monto,
-        }); // Serializa y guarda el struct en la cuenta de la venta
+        let articulo_key = context.accounts.articulo.key(); // Se lee ANTES del &mut
 
-        let venta_key = context.accounts.venta.key(); // Se lee ANTES del &mut de cliente
-
-        let cliente = &mut context.accounts.cliente;
-
-        cliente.historial.push(venta_key); // El historial guarda PDAs, no structs completos
-        cliente.compras += 1;
-
-        msg!(
-            "Venta registrada para el cliente con id: {}",
-            cliente.id_cliente
-        ); // Log de verificacion
-
-        Ok(())
-    }
-
-    /////////////////////////// Hacer Devolucion ///////////////////////////
-    // El contexto EliminarVenta lleva "close = owner": la cuenta de la venta se cierra al final
-    // y su rent vuelve al owner.
-    pub fn hacer_devolucion(
-        context: Context<EliminarVenta>,
-        _id_cliente: u16,
-        sku: String,
-    ) -> Result<()> {
-        let venta_key = context.accounts.venta.key(); // Se lee ANTES del &mut de cliente
-
-        let cliente = &mut context.accounts.cliente;
-
-        require!(cliente.historial.contains(&venta_key), Errores::NoSKU);
-        // La venta existe y pertenece a este cliente (lo garantizan las seeds), pero el historial
-        // es el indice de lectura: si la referencia no esta, restar compras lo desincronizaria.
-
-        cliente.historial.retain(|&k| k != venta_key); // Quita la referencia del historial
-        cliente.compras -= 1;
-
-        msg!(
-            "Venta con sku: {}, devuelta por el cliente con id: {}",
-            sku,
-            cliente.id_cliente
+        let almacen = &mut context.accounts.almacen;
+        require!(
+            almacen.articulos.len() < MAX_ARTICULOS,
+            Errores::LimiteArticulos
         );
 
+        let id_articulo = almacen.id_counter + 1;
+        almacen.id_counter = id_articulo;
+        almacen.articulos.push(articulo_key);
+
+        context.accounts.articulo.set_inner(Articulo {
+            id_articulo,
+            nombre: nombre.clone(),
+            unidad,
+            stock: 0, // Todo articulo nace en cero: el stock solo cambia con movimientos
+            movimientos: Vec::new(),
+        });
+
+        msg!("Articulo {} creado con id: {}", nombre, id_articulo);
         Ok(())
     }
 
-    /////////////////////////// Cambiar Monto ///////////////////////////
-    // La cuenta de la venta llega ya validada por el contexto: no hay que recorrer ningun vector
-    // ni reconstruir la cadena a mano.
-    pub fn cambiar_monto(
-        context: Context<ModificarVenta>,
-        _id_cliente: u16,
-        sku: String,
-        nuevo_monto: u32,
+    /////////////////////////// Registrar Movimiento ///////////////////////////
+    // id_articulo y folio no se usan en el cuerpo: viajan al contexto para derivar y validar las cuentas.
+    #[allow(unused_variables)]
+    pub fn registrar_movimiento(
+        context: Context<NuevoMovimiento>,
+        id_articulo: u16,
+        folio: String,
+        tipo: TipoMovimiento,
+        motivo: String,
+        cantidad: u32,
     ) -> Result<()> {
-        let venta = &mut context.accounts.venta;
-        let viejo_monto = venta.monto;
-        venta.monto = nuevo_monto;
+        require!(cantidad > 0, Errores::CantidadInvalida);
 
-        msg!(
-            "El monto de la venta con sku: {}, paso de: {}, a: {}",
-            sku,
-            viejo_monto,
-            nuevo_monto
+        let movimiento_key = context.accounts.movimiento.key(); // Se lee ANTES del &mut
+        let articulo = &mut context.accounts.articulo;
+        require!(
+            articulo.movimientos.len() < MAX_MOVIMIENTOS,
+            Errores::LimiteMovimientos
         );
 
+        // El stock se calcula aqui, en el programa: ningun cliente puede escribirlo directamente.
+        articulo.stock = match tipo {
+            TipoMovimiento::Entrada => articulo
+                .stock
+                .checked_add(cantidad)
+                .ok_or(Errores::Desbordamiento)?,
+            TipoMovimiento::Salida => articulo
+                .stock
+                .checked_sub(cantidad)
+                .ok_or(Errores::StockInsuficiente)?,
+        };
+        articulo.movimientos.push(movimiento_key);
+
+        context.accounts.movimiento.set_inner(Movimiento {
+            folio,
+            tipo,
+            motivo,
+            cantidad,
+            fecha: Clock::get()?.unix_timestamp, // Hora de la red, no la del cliente
+        });
+
+        msg!(
+            "Movimiento registrado para el articulo {}. Stock actual: {}",
+            articulo.id_articulo,
+            articulo.stock
+        );
+        Ok(())
+    }
+
+    /////////////////////////// Corregir Cantidad ///////////////////////////
+    // Corrige un movimiento capturado con una cantidad equivocada y ajusta el stock en consecuencia.
+    #[allow(unused_variables)]
+    pub fn corregir_cantidad(
+        context: Context<ModificarMovimiento>,
+        id_articulo: u16,
+        folio: String,
+        nueva_cantidad: u32,
+    ) -> Result<()> {
+        require!(nueva_cantidad > 0, Errores::CantidadInvalida);
+
+        let articulo = &mut context.accounts.articulo;
+        let movimiento = &mut context.accounts.movimiento;
+        let anterior = movimiento.cantidad;
+
+        // Se deshace el efecto anterior y se aplica el nuevo, siempre con aritmetica verificada.
+        articulo.stock = match movimiento.tipo {
+            TipoMovimiento::Entrada => articulo
+                .stock
+                .checked_sub(anterior)
+                .ok_or(Errores::StockInsuficiente)?
+                .checked_add(nueva_cantidad)
+                .ok_or(Errores::Desbordamiento)?,
+            TipoMovimiento::Salida => articulo
+                .stock
+                .checked_add(anterior)
+                .ok_or(Errores::Desbordamiento)?
+                .checked_sub(nueva_cantidad)
+                .ok_or(Errores::StockInsuficiente)?,
+        };
+        movimiento.cantidad = nueva_cantidad;
+
+        msg!(
+            "Cantidad del movimiento {} paso de {} a {}. Stock actual: {}",
+            movimiento.folio,
+            anterior,
+            nueva_cantidad,
+            articulo.stock
+        );
+        Ok(())
+    }
+
+    /////////////////////////// Anular Movimiento ///////////////////////////
+    // El contexto lleva "close = owner": la cuenta del movimiento se cierra y su renta regresa al owner.
+    #[allow(unused_variables)]
+    pub fn anular_movimiento(
+        context: Context<EliminarMovimiento>,
+        id_articulo: u16,
+        folio: String,
+    ) -> Result<()> {
+        let movimiento_key = context.accounts.movimiento.key(); // Se lee ANTES del &mut
+        let articulo = &mut context.accounts.articulo;
+        require!(
+            articulo.movimientos.contains(&movimiento_key),
+            Errores::MovimientoNoRegistrado
+        );
+
+        // Anular es deshacer el efecto del movimiento sobre el stock.
+        let cantidad = context.accounts.movimiento.cantidad;
+        articulo.stock = match context.accounts.movimiento.tipo {
+            TipoMovimiento::Entrada => articulo
+                .stock
+                .checked_sub(cantidad)
+                .ok_or(Errores::StockInsuficiente)?,
+            TipoMovimiento::Salida => articulo
+                .stock
+                .checked_add(cantidad)
+                .ok_or(Errores::Desbordamiento)?,
+        };
+        articulo.movimientos.retain(|&k| k != movimiento_key);
+
+        msg!(
+            "Movimiento anulado en el articulo {}. Stock actual: {}",
+            articulo.id_articulo,
+            articulo.stock
+        );
         Ok(())
     }
 }
+
+/////////////////////////// Constantes ///////////////////////////
+// Deben coincidir con los #[max_len] de las cuentas: definen el espacio reservado.
+pub const MAX_ARTICULOS: usize = 10;
+pub const MAX_MOVIMIENTOS: usize = 10;
 
 /////////////////////////// Codigos de Error ///////////////////////////
 #[error_code]
 pub enum Errores {
-    #[msg("Error, no eres el owner del registro")]
+    #[msg("Error, no eres el owner del almacen")]
     NoOwner,
-    #[msg("Error, la venta no esta en el historial del cliente")]
-    NoSKU,
+    #[msg("Error, el movimiento no esta en la bitacora del articulo")]
+    MovimientoNoRegistrado,
+    #[msg("Error, la cantidad debe ser mayor a cero")]
+    CantidadInvalida,
+    #[msg("Error, stock insuficiente para realizar la operacion")]
+    StockInsuficiente,
+    #[msg("Error, la cantidad desborda el limite del stock")]
+    Desbordamiento,
+    #[msg("Error, el almacen alcanzo el limite de articulos")]
+    LimiteArticulos,
+    #[msg("Error, el articulo alcanzo el limite de movimientos activos")]
+    LimiteMovimientos,
 }
 
 /////////////////////////// CUENTAS ///////////////////////////
-/////////////////////////// Registro ///////////////////////////
+
+/// Tipo de movimiento: una entrada suma al stock y una salida resta.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+pub enum TipoMovimiento {
+    Entrada,
+    Salida,
+}
 
 #[account]
 #[derive(InitSpace)]
-pub struct Registro {
-    pub owner: Pubkey, // pub: has_one = owner necesita leer este campo desde el contexto
+pub struct Almacen {
+    pub owner: Pubkey,
 
     #[max_len(30)]
-    nombre_negocio: String,
+    pub nombre_almacen: String,
 
     #[max_len(10)] // Guarda PDAs (32 bytes c/u), no structs completos
-    clientes: Vec<Pubkey>,
+    pub articulos: Vec<Pubkey>,
 
-    id_counter: u16,
+    pub id_counter: u16,
 }
 
-/////////////////////////// Cliente ///////////////////////////
-
 #[account]
-#[derive(InitSpace, PartialEq)]
-pub struct Cliente {
-    id_cliente: u16,
+#[derive(InitSpace)]
+pub struct Articulo {
+    pub id_articulo: u16,
 
     #[max_len(30)]
-    nombre: String,
-
-    compras: u16,
+    pub nombre: String,
 
     #[max_len(10)]
-    historial: Vec<Pubkey>,
+    pub unidad: String, // pza, kg, caja...
+
+    pub stock: u32,
+
+    #[max_len(10)]
+    pub movimientos: Vec<Pubkey>,
 }
 
-/////////////////////////// Venta ///////////////////////////
-
 #[account]
-#[derive(InitSpace, PartialEq)]
-pub struct Venta {
-    #[max_len(5)]
-    sku: String,
+#[derive(InitSpace)]
+pub struct Movimiento {
+    #[max_len(8)]
+    pub folio: String,
+
+    pub tipo: TipoMovimiento,
 
     #[max_len(50)]
-    descripcion: String,
+    pub motivo: String,
 
-    monto: u32,
+    pub cantidad: u32,
+
+    pub fecha: i64, // unix timestamp (segundos) tomado del Clock de la red
 }
 
 /////////////////////////// CONTEXTOS ///////////////////////////
 /*
 La jerarquia del modelo vive en las seeds:
 
-    registro  <- [b"registro", nombre_negocio, owner]
-    cliente   <- [b"cliente",  registro, id_cliente]
-    venta     <- [b"venta",    cliente,  sku]
+    almacen    <- [b"almacen",    nombre_almacen, owner]
+    articulo   <- [b"articulo",   almacen,  id_articulo]
+    movimiento <- [b"movimiento", articulo, folio]
 
-Cada cuenta se deriva de su padre, asi que la pertenencia queda garantizada por construccion:
-si la direccion coincide, el cliente ES de ese registro. Por eso ya no hace falta recorrer
-el vector para validar; los vectores quedan como indice de lectura para el frontend.
-
-El "has_one = owner" cierra la cadena por arriba: comprueba que registro.owner == owner.key(),
-es decir, que quien firma es el dueño del registro desde el que se deriva todo lo demas.
+Cada cuenta se deriva de su padre, asi que la pertenencia queda garantizada por construccion.
+"has_one = owner" cierra la cadena por arriba: quien firma debe ser el owner del almacen.
 */
 
-/////////////////////////// Nuevo Registro ///////////////////////////
-/// Instruccion: crear_registro
-
+/////////////////////////// Nuevo Almacen ///////////////////////////
 #[derive(Accounts)]
-#[instruction(nombre_negocio: String)]
-pub struct NuevoRegistro<'info> {
+#[instruction(nombre_almacen: String)]
+pub struct NuevoAlmacen<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(
         init,
         payer = owner,
-        space = Registro::INIT_SPACE + 8,
-        seeds = [b"registro", nombre_negocio.as_bytes(), owner.key().as_ref()],
+        space = Almacen::INIT_SPACE + 8,
+        seeds = [b"almacen", nombre_almacen.as_bytes(), owner.key().as_ref()],
         bump
     )]
-    pub registro: Account<'info, Registro>,
+    pub almacen: Account<'info, Almacen>,
 
     pub system_program: Program<'info, System>,
 }
 
-/////////////////////////// Nuevo Cliente ///////////////////////////
-/// Instruccion: crear_cliente
-
+/////////////////////////// Nuevo Articulo ///////////////////////////
 #[derive(Accounts)]
-pub struct NuevoCliente<'info> {
+pub struct NuevoArticulo<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(mut, has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>,
+    pub almacen: Account<'info, Almacen>,
 
     #[account(
         init,
         payer = owner,
-        space = Cliente::INIT_SPACE + 8,
-        // El id sale del contador del propio registro: el programa lo asigna, nadie lo envia.
-        // to_le_bytes() porque un u16 no tiene as_bytes(): ese metodo es de String/str
-        seeds = [b"cliente", registro.key().as_ref(), (registro.id_counter + 1).to_le_bytes().as_ref()],
+        space = Articulo::INIT_SPACE + 8,
+        // El id sale del contador del almacen: lo asigna el programa, nadie lo envia.
+        seeds = [b"articulo", almacen.key().as_ref(), (almacen.id_counter + 1).to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>,
+    pub articulo: Account<'info, Articulo>,
 
     pub system_program: Program<'info, System>,
 }
 
-/////////////////////////// Nueva Venta ///////////////////////////
-/// Instruccion: registrar_venta
-
+/////////////////////////// Nuevo Movimiento ///////////////////////////
 #[derive(Accounts)]
-#[instruction(id_cliente: u16, sku: String)]
-pub struct NuevaVenta<'info> {
+#[instruction(id_articulo: u16, folio: String)]
+pub struct NuevoMovimiento<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>, // Sin mut: solo se lee para derivar al cliente
+    pub almacen: Account<'info, Almacen>, // Sin mut: solo se lee para derivar el articulo
 
     #[account(
         mut,
-        seeds = [b"cliente", registro.key().as_ref(), id_cliente.to_le_bytes().as_ref()],
+        seeds = [b"articulo", almacen.key().as_ref(), id_articulo.to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>,
+    pub articulo: Account<'info, Articulo>,
 
     #[account(
         init,
         payer = owner,
-        space = Venta::INIT_SPACE + 8,
-        // El SKU entra en los seeds: un cliente no puede repetir el mismo producto
-        seeds = [b"venta", cliente.key().as_ref(), sku.as_bytes()],
+        space = Movimiento::INIT_SPACE + 8,
+        // El folio entra en las seeds: un articulo no puede repetir el mismo folio
+        seeds = [b"movimiento", articulo.key().as_ref(), folio.as_bytes()],
         bump
     )]
-    pub venta: Account<'info, Venta>,
+    pub movimiento: Account<'info, Movimiento>,
 
     pub system_program: Program<'info, System>,
 }
 
-/////////////////////////// Modificar Venta ///////////////////////////
-/// Instruccion: cambiar_monto
-
+/////////////////////////// Modificar Movimiento ///////////////////////////
 #[derive(Accounts)]
-#[instruction(id_cliente: u16, sku: String)]
-pub struct ModificarVenta<'info> {
+#[instruction(id_articulo: u16, folio: String)]
+pub struct ModificarMovimiento<'info> {
     pub owner: Signer<'info>,
 
     #[account(has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>,
+    pub almacen: Account<'info, Almacen>,
 
     #[account(
-        seeds = [b"cliente", registro.key().as_ref(), id_cliente.to_le_bytes().as_ref()],
+        mut, // el stock cambia al corregir la cantidad
+        seeds = [b"articulo", almacen.key().as_ref(), id_articulo.to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>, // Sin mut: solo se lee, para derivar la venta
+    pub articulo: Account<'info, Articulo>,
 
     #[account(
         mut,
-        seeds = [b"venta", cliente.key().as_ref(), sku.as_bytes()],
+        seeds = [b"movimiento", articulo.key().as_ref(), folio.as_bytes()],
         bump
     )]
-    pub venta: Account<'info, Venta>,
+    pub movimiento: Account<'info, Movimiento>,
 }
 
-/////////////////////////// Eliminar Venta ///////////////////////////
-/// Instruccion: hacer_devolucion -> cierra la cuenta
-
+/////////////////////////// Eliminar Movimiento ///////////////////////////
 #[derive(Accounts)]
-#[instruction(id_cliente: u16, sku: String)]
-pub struct EliminarVenta<'info> {
+#[instruction(id_articulo: u16, folio: String)]
+pub struct EliminarMovimiento<'info> {
     #[account(mut)]
-    pub owner: Signer<'info>, // mut: recibe el rent de la cuenta cerrada
+    pub owner: Signer<'info>, // mut: recibe la renta de la cuenta cerrada
 
     #[account(has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>, // Sin mut: el registro no cambia en una devolucion
+    pub almacen: Account<'info, Almacen>,
 
     #[account(
         mut,
-        seeds = [b"cliente", registro.key().as_ref(), id_cliente.to_le_bytes().as_ref()],
+        seeds = [b"articulo", almacen.key().as_ref(), id_articulo.to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>,
+    pub articulo: Account<'info, Articulo>,
 
     #[account(
         mut,
         close = owner,
-        seeds = [b"venta", cliente.key().as_ref(), sku.as_bytes()],
+        seeds = [b"movimiento", articulo.key().as_ref(), folio.as_bytes()],
         bump
     )]
-    pub venta: Account<'info, Venta>,
+    pub movimiento: Account<'info, Movimiento>,
 }

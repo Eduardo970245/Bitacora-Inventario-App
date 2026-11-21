@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 
-// Estos bytes corresponden al programa del bootcamp. El IDL de referencia no
-// describe esas semillas; este helper conserva su correspondencia explícita.
+// Estos bytes corresponden a las seeds del programa Rust (programa/src/lib.rs).
+// Este helper conserva su correspondencia explícita con to_le_bytes() y as_bytes().
 export const s = {
   texto: (valor: string) => Buffer.from(valor, 'utf8'),
   cuenta: (valor: { toString(): string }) => new PublicKey(valor.toString()).toBuffer(),

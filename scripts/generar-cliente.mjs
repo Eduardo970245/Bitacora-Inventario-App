@@ -11,7 +11,7 @@ try {
   const idlSha256 = huellaIdl(idl);
   let anterior;
   try { anterior = JSON.parse(await readFile(resolve(root, 'src/config/programa.json'), 'utf8')); } catch { /* Primera generacion. */ }
-  // Una importacion explicita puede confirmar el despliegue de David aunque
+  // Una importacion explicita puede confirmar un despliegue aunque
   // coincida con la direccion de muestra. Conservar esa decision al regenerar.
   const importado = process.argv.includes('--idl-importado') || (
     anterior?.esReferencia === false && anterior.programId === datos.programId && anterior.idlSha256 === idlSha256
@@ -35,11 +35,11 @@ try {
   await writeFile(clienteRuta, JSON.stringify(cliente, null, 2) + '\n');
   await writeFile(resolve(root, 'src/config/programa.json'), JSON.stringify({
     ...datos,
-    origen: datos.esReferencia ? 'IDL de referencia de David. Escritura bloqueada.' : 'IDL importado por el participante.',
+    origen: datos.esReferencia ? 'IDL de ejemplo con direccion marcador. Escritura bloqueada.' : 'IDL importado de tu despliegue.',
     idlSha256,
   }, null, 2) + '\n');
   console.log(datos.esReferencia
-    ? 'Cliente de referencia generado. Importa tu IDL para habilitar escrituras en Devnet.'
+    ? 'Cliente de ejemplo generado. Importa el IDL de tu despliegue para habilitar escrituras en Devnet.'
     : 'Cliente generado para ' + datos.programId + '. Reinicia Vite si ya estaba abierto.');
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

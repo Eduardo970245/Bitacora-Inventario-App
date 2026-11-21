@@ -9,3 +9,6 @@ dist/
 # idl.json y clients/ SI se versionan: permiten reproducir la entrega.
 # Nunca subas keypairs, frases de recuperacion ni archivos de wallets.
 *-keypair.json
+
+# IDL temporal exportado desde Playground (se importa con npm run configurar:idl)
+tmp-idl/

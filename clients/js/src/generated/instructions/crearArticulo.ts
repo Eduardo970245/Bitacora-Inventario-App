@@ -45,23 +45,23 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { REGISTRO_PROGRAM_ADDRESS } from "../programs";
+import { BITACORA_INVENTARIO_PROGRAM_ADDRESS } from "../programs";
 
-export const CREAR_CLIENTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  55, 98, 61, 156, 15, 134, 174, 95,
+export const CREAR_ARTICULO_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  191, 38, 187, 57, 24, 96, 154, 93,
 ]);
 
-export function getCrearClienteDiscriminatorBytes(): ReadonlyUint8Array {
+export function getCrearArticuloDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CREAR_CLIENTE_DISCRIMINATOR,
+    CREAR_ARTICULO_DISCRIMINATOR,
   );
 }
 
-export type CrearClienteInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type CrearArticuloInstruction<
+  TProgram extends string = typeof BITACORA_INVENTARIO_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountRegistro extends string | AccountMeta<string> = string,
-  TAccountCliente extends string | AccountMeta<string> = string,
+  TAccountAlmacen extends string | AccountMeta<string> = string,
+  TAccountArticulo extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -73,12 +73,12 @@ export type CrearClienteInstruction<
         ? WritableSignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountRegistro extends string
-        ? WritableAccount<TAccountRegistro>
-        : TAccountRegistro,
-      TAccountCliente extends string
-        ? WritableAccount<TAccountCliente>
-        : TAccountCliente,
+      TAccountAlmacen extends string
+        ? WritableAccount<TAccountAlmacen>
+        : TAccountAlmacen,
+      TAccountArticulo extends string
+        ? WritableAccount<TAccountArticulo>
+        : TAccountArticulo,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -86,83 +86,90 @@ export type CrearClienteInstruction<
     ]
   >;
 
-export type CrearClienteInstructionData = {
+export type CrearArticuloInstructionData = {
   discriminator: ReadonlyUint8Array;
   nombre: string;
+  unidad: string;
 };
 
-export type CrearClienteInstructionDataArgs = { nombre: string };
+export type CrearArticuloInstructionDataArgs = {
+  nombre: string;
+  unidad: string;
+};
 
-export function getCrearClienteInstructionDataEncoder(): Encoder<CrearClienteInstructionDataArgs> {
+export function getCrearArticuloInstructionDataEncoder(): Encoder<CrearArticuloInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["nombre", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["unidad", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
-    (value) => ({ ...value, discriminator: CREAR_CLIENTE_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: CREAR_ARTICULO_DISCRIMINATOR }),
   );
 }
 
-export function getCrearClienteInstructionDataDecoder(): Decoder<CrearClienteInstructionData> {
+export function getCrearArticuloInstructionDataDecoder(): Decoder<CrearArticuloInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["nombre", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["unidad", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 
-export function getCrearClienteInstructionDataCodec(): Codec<
-  CrearClienteInstructionDataArgs,
-  CrearClienteInstructionData
+export function getCrearArticuloInstructionDataCodec(): Codec<
+  CrearArticuloInstructionDataArgs,
+  CrearArticuloInstructionData
 > {
   return combineCodec(
-    getCrearClienteInstructionDataEncoder(),
-    getCrearClienteInstructionDataDecoder(),
+    getCrearArticuloInstructionDataEncoder(),
+    getCrearArticuloInstructionDataDecoder(),
   );
 }
 
-export type CrearClienteInput<
+export type CrearArticuloInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCliente extends InstructionAccountInput = InstructionAccountInput,
+  TAccountAlmacen extends InstructionAccountInput = InstructionAccountInput,
+  TAccountArticulo extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
 > = {
   owner: TAccountOwner;
-  registro: TAccountRegistro;
-  cliente: TAccountCliente;
+  almacen: TAccountAlmacen;
+  articulo: TAccountArticulo;
   systemProgram?: TAccountSystemProgram;
-  nombre: CrearClienteInstructionDataArgs["nombre"];
+  nombre: CrearArticuloInstructionDataArgs["nombre"];
+  unidad: CrearArticuloInstructionDataArgs["unidad"];
 };
 
-export function getCrearClienteInstruction<
+export function getCrearArticuloInstruction<
   TAccountOwner extends InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput,
-  TAccountCliente extends InstructionAccountInput,
+  TAccountAlmacen extends InstructionAccountInput,
+  TAccountArticulo extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof REGISTRO_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof BITACORA_INVENTARIO_PROGRAM_ADDRESS,
 >(
-  input: CrearClienteInput<
+  input: CrearArticuloInput<
     TAccountOwner,
-    TAccountRegistro,
-    TAccountCliente,
+    TAccountAlmacen,
+    TAccountArticulo,
     TAccountSystemProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
   },
-): CrearClienteInstruction<
+): CrearArticuloInstruction<
   TProgramAddress,
   ResolvedInstructionAccountMeta<
     TAccountOwner,
     InstructionAccountInputAddress<TAccountOwner>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountRegistro,
-    InstructionAccountInputAddress<TAccountRegistro>
+    TAccountAlmacen,
+    InstructionAccountInputAddress<TAccountAlmacen>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountCliente,
-    InstructionAccountInputAddress<TAccountCliente>
+    TAccountArticulo,
+    InstructionAccountInputAddress<TAccountArticulo>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
@@ -171,7 +178,7 @@ export function getCrearClienteInstruction<
 > {
   // Program address.
   const programAddressInput =
-    config?.programAddress ?? REGISTRO_PROGRAM_ADDRESS;
+    config?.programAddress ?? BITACORA_INVENTARIO_PROGRAM_ADDRESS;
   const programAddress =
     typeof programAddressInput === "string"
       ? programAddressInput
@@ -183,13 +190,13 @@ export function getCrearClienteInstruction<
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
-    registro: {
-      value: input.registro ?? null,
+    almacen: {
+      value: input.almacen ?? null,
       isSigner: false,
       isWritable: true,
     },
-    cliente: {
-      value: input.cliente ?? null,
+    articulo: {
+      value: input.articulo ?? null,
       isSigner: false,
       isWritable: true,
     },
@@ -216,27 +223,27 @@ export function getCrearClienteInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("registro", accounts.registro),
-      getAccountMeta("cliente", accounts.cliente),
+      getAccountMeta("almacen", accounts.almacen),
+      getAccountMeta("articulo", accounts.articulo),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getCrearClienteInstructionDataEncoder().encode(
-      args as CrearClienteInstructionDataArgs,
+    data: getCrearArticuloInstructionDataEncoder().encode(
+      args as CrearArticuloInstructionDataArgs,
     ),
     programAddress,
-  } as CrearClienteInstruction<
+  } as CrearArticuloInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
       InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistro,
-      InstructionAccountInputAddress<TAccountRegistro>
+      TAccountAlmacen,
+      InstructionAccountInputAddress<TAccountAlmacen>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCliente,
-      InstructionAccountInputAddress<TAccountCliente>
+      TAccountArticulo,
+      InstructionAccountInputAddress<TAccountArticulo>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -245,28 +252,28 @@ export function getCrearClienteInstruction<
   >);
 }
 
-export type ParsedCrearClienteInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type ParsedCrearArticuloInstruction<
+  TProgram extends string = typeof BITACORA_INVENTARIO_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
     owner: TAccountMetas[0];
-    registro: TAccountMetas[1];
-    cliente: TAccountMetas[2];
+    almacen: TAccountMetas[1];
+    articulo: TAccountMetas[2];
     systemProgram: TAccountMetas[3];
   };
-  data: CrearClienteInstructionData;
+  data: CrearArticuloInstructionData;
 };
 
-export function parseCrearClienteInstruction<
+export function parseCrearArticuloInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedCrearClienteInstruction<TProgram, TAccountMetas> {
+): ParsedCrearArticuloInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -286,10 +293,10 @@ export function parseCrearClienteInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       owner: getNextAccount(),
-      registro: getNextAccount(),
-      cliente: getNextAccount(),
+      almacen: getNextAccount(),
+      articulo: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getCrearClienteInstructionDataDecoder().decode(instruction.data),
+    data: getCrearArticuloInstructionDataDecoder().decode(instruction.data),
   };
 }

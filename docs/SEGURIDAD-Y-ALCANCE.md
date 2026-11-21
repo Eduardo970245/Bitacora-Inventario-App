@@ -1,32 +1,33 @@
-# Seguridad y alcance del proyecto educativo
+# Seguridad y alcance
 
-## Controles del programa base
+## Controles del programa
 
-El código Rust utiliza `Signer` para exigir firma, `has_one = owner` para comprobar la autoridad y semillas para enlazar Registro, Cliente y Venta. La instrucción de devolución comprueba que la venta esté en el historial antes de retirarla y cerrar la cuenta.
-
-Estos controles se explican con el código de los días 1–2 y se observan en la integración del día 4. Conectar una wallet o habilitar un botón no sustituye las restricciones del programa.
+- `Signer` exige firma y `has_one = owner` comprueba que quien firma sea la autoridad del almacén en todas las instrucciones.
+- Las seeds enlazan Almacén → Artículo → Movimiento: la pertenencia queda garantizada por construcción.
+- El **stock solo lo modifica el programa**, nunca un argumento del cliente. Entradas, salidas, correcciones y anulaciones usan aritmética verificada (`checked_add`/`checked_sub`) y se rechazan si el resultado sería negativo o desbordaría `u32`.
+- La cantidad debe ser mayor que cero. Los límites de capacidad (10 artículos por almacén, 10 movimientos activos por artículo) devuelven errores propios.
+- La fecha de cada movimiento viene del reloj de la red (`Clock`), no del cliente.
+- `anular_movimiento` revierte el efecto en el stock antes de cerrar la cuenta y devuelve la renta al owner.
 
 ## Controles del frontend
 
-- Validación de direcciones, texto en bytes UTF-8 e importes enteros positivos.
-- Comprobación de coherencia entre IDL, Program ID y cliente generado.
-- Comprobación del genesis de Devnet y de la cuenta ejecutable antes de solicitar la firma.
-- Bloqueo de la configuración de referencia y de formularios correspondientes a otra autoridad.
-- Distinción entre firma cancelada, error de ejecución, confirmación no comprobada y fallo de lectura posterior.
-- No se guardan claves privadas ni se solicita una frase de recuperación.
+- Validación de texto en bytes UTF-8 y de enteros positivos, con los mismos máximos que el programa.
+- Coherencia entre IDL, Program ID y cliente generado; bloqueo de escrituras mientras el IDL tenga la dirección marcador.
+- Comprobación del genesis de Devnet y de que el programa esté desplegado antes de pedir la firma.
+- Bloqueo del formulario al consultar otra autoridad.
+- No se guardan claves privadas ni se pide la frase de recuperación.
 
-Son medidas de esta aplicación. Un cliente diferente puede omitir sus validaciones: los controles de negocio que deban proteger la aplicación necesitan existir también en el programa.
+Un cliente distinto puede saltarse las validaciones del frontend, por eso las reglas de negocio importantes viven también en el programa.
 
-## Límites que debemos reconocer en clase
+## Límites del diseño (importante)
 
-El programa Rust se incluye sin modificar respecto a la referencia del bootcamp. `#[max_len]` se utiliza para calcular el espacio reservado: no es una validación explícita de longitud o capacidad de negocio.
+- **La bitácora no es un historial permanente.** `anular_movimiento` cierra la cuenta del movimiento y lo quita del índice, y cada artículo admite solo 10 movimientos activos. Para un historial ilimitado e inmutable habría que dejar de anular (registrar un movimiento contrario), usar un contador en lugar de un folio como seed y no guardar un `Vec` de movimientos, o emitir eventos con `emit!` y leerlos con un indexador.
+- Una sola autoridad por almacén; no hay roles (almacenista, supervisor, auditor).
+- `corregir_cantidad` permite reescribir un movimiento ya registrado: es útil para capturar errores, pero para auditoría real conviene eliminarlo y dejar solo anulaciones.
+- El contador de artículos se calcula a partir del estado: dos transacciones simultáneas de creación podrían chocar (una falla).
+- Sin privacidad: todo lo que se guarda en cuentas de Solana es público.
+- El programa no se ha auditado ni probado con herramientas de pruebas Rust; la validación disponible es `programa/client/client.ts` en Playground y las pruebas manuales.
 
-El diseño reserva espacio para hasta 10 referencias de clientes en Registro y 10 de ventas activas en Cliente. La app evita crear más clientes en el flujo normal y valida tamaños de texto, pero el programa no ofrece todavía errores de negocio claros para todos los límites ni valida todos los valores positivos. Algunas entradas que evita el formulario pueden fallar por serialización o ser aceptadas desde otro cliente.
+## Antes de producción
 
-Otros puntos: capacidad fija, contador de cliente calculado a partir del estado (puede haber concurrencia), importe sin moneda ni decimales, sin pagos reales, sin privacidad de datos onchain y sin indexador. `compras` indica ventas activas, no el total histórico de compras; la devolución cierra la cuenta de la venta.
-
-## Qué revisar antes de producción
-
-Añadir y probar en el programa las reglas de negocio y sus errores; revisar límites y aritmética; evaluar crecimiento de cuentas y concurrencia; definir unidades de dinero y privacidad; probar permisos, casos fallidos y consistencia de estado; revisar autoridades de actualización, dependencias y operación del RPC; realizar una revisión de seguridad adecuada al uso.
-
-Este paquete es una base didáctica de Devnet. Un build correcto o una demo funcional no acreditan por sí solos que el sistema esté listo para producción. Esta revisión se comenta dentro de las sesiones existentes.
+Cambiar de Devnet a mainnet implica dinero real: pruebas automatizadas del programa (por ejemplo con `anchor test` o LiteSVM), revisión de seguridad, decidir quién conserva la *upgrade authority* (o renunciar a ella), manejo de concurrencia y un indexador para consultas de historial.

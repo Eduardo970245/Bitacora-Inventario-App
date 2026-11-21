@@ -2,7 +2,7 @@ import { AccountRole, type Address, type ReadonlyUint8Array } from '@solana/kit'
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import idl from '../../idl.json';
-import { REGISTRO_PROGRAM_ADDRESS } from '../../clients/js/src/generated';
+import { BITACORA_INVENTARIO_PROGRAM_ADDRESS } from '../../clients/js/src/generated';
 import { comprobarPrograma } from './seguridad';
 
 export type WalletFirma = Pick<WalletContextState, 'publicKey' | 'sendTransaction'>;
@@ -60,7 +60,7 @@ export async function enviar(
   opciones: OpcionesEnvio = {},
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Conecta tu wallet primero.');
-  if (String(ix.programAddress) !== String(REGISTRO_PROGRAM_ADDRESS)) throw new Error('La instrucción corresponde a otro programa.');
+  if (String(ix.programAddress) !== String(BITACORA_INVENTARIO_PROGRAM_ADDRESS)) throw new Error('La instrucción corresponde a otro programa.');
   await comprobarPrograma(connection);
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   const tx = new Transaction({ feePayer: wallet.publicKey, blockhash, lastValidBlockHeight });
@@ -81,16 +81,16 @@ function detalle(error: unknown): string {
 export function traducir(error: unknown): string {
   const texto = detalle(error);
   if (/user rejected|rejected the request|rechazaste|request rejected/i.test(texto)) return 'La firma fue cancelada en la wallet. Puedes volver a intentarlo.';
-  if (/ConstraintSeeds|seeds constraint/i.test(texto)) return 'Las cuentas no corresponden a las semillas esperadas. Revisa negocio, autoridad, cliente y SKU.';
-  if (/AccountNotInitialized|does not exist|Account does not exist/i.test(texto)) return 'No se encontró una de las cuentas. Crea primero el registro y el cliente correspondientes.';
-  if (/already in use|already initialized/i.test(texto)) return 'Esa cuenta ya existe. El mismo cliente solo puede tener una venta activa por SKU.';
+  if (/ConstraintSeeds|seeds constraint/i.test(texto)) return 'Las cuentas no corresponden a las semillas esperadas. Revisa almacén, autoridad, artículo y folio.';
+  if (/AccountNotInitialized|does not exist|Account does not exist/i.test(texto)) return 'No se encontró una de las cuentas. Crea primero el almacén y el artículo correspondientes.';
+  if (/already in use|already initialized/i.test(texto)) return 'Esa cuenta ya existe. Un artículo no puede repetir un folio mientras el movimiento siga activo.';
   const coincidencia = texto.match(/custom program error:\s*(0x[0-9a-f]+|\d+)/i) ?? texto.match(/"Custom"\s*:\s*(\d+)/);
   if (coincidencia) {
     const codigo = Number(coincidencia[1]);
     const propio = (idl.errors ?? []).find((item) => item.code === codigo);
     if (propio) return propio.name + ': ' + propio.msg;
     if (codigo === 2006) return 'ConstraintSeeds: las direcciones no coinciden con las semillas de la instrucción.';
-    if (codigo === 2001) return 'La wallet no corresponde a la autoridad del registro.';
+    if (codigo === 2001) return 'La wallet no corresponde a la autoridad del almacén.';
     return 'El programa rechazó la operación con el código ' + codigo + '. Consulta el detalle.';
   }
   if (/insufficient funds|insufficient lamports/i.test(texto)) return 'Falta SOL de prueba para la comisión o la creación de la cuenta.';
