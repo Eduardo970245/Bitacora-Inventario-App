@@ -67,7 +67,8 @@ Si quieres tu propio Program ID, sigue **[`docs/GUIA-DESPLIEGUE.md`](../docs/GUI
 
 > 🔐 La app nunca contiene ni pide claves privadas. La wallet que conectes será la autoridad de los almacenes que crees. Usa una wallet solo para pruebas.
 
-## Pruebas y evidencias - [evidencias/EVIDENCIAS.md](../evidencias/EVIDENCIAS.md): reporte completo con capturas de ejecución local, Solana Playground y pruebas manuales en Devnet
+## Pruebas y evidencias 
+Las pruebas y evidencias se encuentran detalladas en [evidencias/EVIDENCIAS.md](../evidencias/EVIDENCIAS.md) en un reporte completo con capturas de ejecución local, Solana Playground y pruebas manuales en Devnet
 
 - `npm run verificar`: typecheck, 14 pruebas automatizadas (semillas, serialización, decodificación de cuentas, validaciones, manejo de errores y contrato del IDL) y build. No envían transacciones.
 - `programa/client/client.ts`: recorrido completo en Playground contra el programa desplegado, incluidos tres casos que deben rechazarse (salida mayor al stock, cantidad cero y folio repetido).
