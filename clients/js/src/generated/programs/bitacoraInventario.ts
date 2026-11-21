@@ -46,31 +46,30 @@ import {
   type MovimientoArgs,
 } from "../accounts";
 import {
-  getAnularMovimientoInstructionAsync,
-  getCorregirCantidadInstructionAsync,
-  getCrearAlmacenInstructionAsync,
+  getAnularMovimientoInstruction,
+  getCorregirCantidadInstruction,
+  getCrearAlmacenInstruction,
   getCrearArticuloInstruction,
-  getRegistrarMovimientoInstructionAsync,
+  getRegistrarMovimientoInstruction,
   parseAnularMovimientoInstruction,
   parseCorregirCantidadInstruction,
   parseCrearAlmacenInstruction,
   parseCrearArticuloInstruction,
   parseRegistrarMovimientoInstruction,
-  type AnularMovimientoAsyncInput,
-  type CorregirCantidadAsyncInput,
-  type CrearAlmacenAsyncInput,
+  type AnularMovimientoInput,
+  type CorregirCantidadInput,
+  type CrearAlmacenInput,
   type CrearArticuloInput,
   type ParsedAnularMovimientoInstruction,
   type ParsedCorregirCantidadInstruction,
   type ParsedCrearAlmacenInstruction,
   type ParsedCrearArticuloInstruction,
   type ParsedRegistrarMovimientoInstruction,
-  type RegistrarMovimientoAsyncInput,
+  type RegistrarMovimientoInput,
 } from "../instructions";
-import { findAlmacenPda, findArticuloPda, findMovimientoPda } from "../pdas";
 
 export const BITACORA_INVENTARIO_PROGRAM_ADDRESS =
-  "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi" as Address<"4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi">;
+  "2pqFML2uKMCM2VDAj1gHtLcmzEvEr7o274oEf67nrLGD" as Address<"2pqFML2uKMCM2VDAj1gHtLcmzEvEr7o274oEf67nrLGD">;
 
 export enum BitacoraInventarioAccount {
   Almacen,
@@ -195,7 +194,7 @@ export function identifyBitacoraInventarioInstruction(
 }
 
 export type ParsedBitacoraInventarioInstruction<
-  TProgram extends string = "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+  TProgram extends string = "2pqFML2uKMCM2VDAj1gHtLcmzEvEr7o274oEf67nrLGD",
 > =
   | ({
       instructionType: BitacoraInventarioInstruction.CrearAlmacen;
@@ -267,7 +266,6 @@ export function parseBitacoraInventarioInstruction<TProgram extends string>(
 export type BitacoraInventarioPlugin = {
   accounts: BitacoraInventarioPluginAccounts;
   instructions: BitacoraInventarioPluginInstructions;
-  pdas: BitacoraInventarioPluginPdas;
   identifyAccount: typeof identifyBitacoraInventarioAccount;
   identifyInstruction: typeof identifyBitacoraInventarioInstruction;
   parseInstruction: typeof parseBitacoraInventarioInstruction;
@@ -284,36 +282,29 @@ export type BitacoraInventarioPluginAccounts = {
 
 export type BitacoraInventarioPluginInstructions = {
   crearAlmacen: (
-    input: CrearAlmacenAsyncInput,
+    input: CrearAlmacenInput,
     config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCrearAlmacenInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getCrearAlmacenInstruction> & SelfPlanAndSendFunctions;
   crearArticulo: (
     input: CrearArticuloInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCrearArticuloInstruction> &
     SelfPlanAndSendFunctions;
   registrarMovimiento: (
-    input: RegistrarMovimientoAsyncInput,
+    input: RegistrarMovimientoInput,
     config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRegistrarMovimientoInstructionAsync> &
+  ) => ReturnType<typeof getRegistrarMovimientoInstruction> &
     SelfPlanAndSendFunctions;
   corregirCantidad: (
-    input: CorregirCantidadAsyncInput,
+    input: CorregirCantidadInput,
     config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCorregirCantidadInstructionAsync> &
+  ) => ReturnType<typeof getCorregirCantidadInstruction> &
     SelfPlanAndSendFunctions;
   anularMovimiento: (
-    input: AnularMovimientoAsyncInput,
+    input: AnularMovimientoInput,
     config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getAnularMovimientoInstructionAsync> &
+  ) => ReturnType<typeof getAnularMovimientoInstruction> &
     SelfPlanAndSendFunctions;
-};
-
-export type BitacoraInventarioPluginPdas = {
-  almacen: typeof findAlmacenPda;
-  articulo: typeof findArticuloPda;
-  movimiento: typeof findMovimientoPda;
 };
 
 export type BitacoraInventarioPluginRequirements = ClientWithRpc<
@@ -339,7 +330,7 @@ export function bitacoraInventarioProgram(
           crearAlmacen: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCrearAlmacenInstructionAsync(input, {
+              getCrearAlmacenInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -355,7 +346,7 @@ export function bitacoraInventarioProgram(
           registrarMovimiento: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
-              getRegistrarMovimientoInstructionAsync(input, {
+              getRegistrarMovimientoInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -363,7 +354,7 @@ export function bitacoraInventarioProgram(
           corregirCantidad: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCorregirCantidadInstructionAsync(input, {
+              getCorregirCantidadInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -371,28 +362,11 @@ export function bitacoraInventarioProgram(
           anularMovimiento: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
-              getAnularMovimientoInstructionAsync(input, {
+              getAnularMovimientoInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-        },
-        pdas: {
-          almacen: (seeds, pdaConfig) =>
-            findAlmacenPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          articulo: (seeds, pdaConfig) =>
-            findArticuloPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          movimiento: (seeds, pdaConfig) =>
-            findMovimientoPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
         },
         identifyAccount: identifyBitacoraInventarioAccount,
         identifyInstruction: identifyBitacoraInventarioInstruction,

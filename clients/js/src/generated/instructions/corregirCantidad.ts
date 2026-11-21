@@ -41,15 +41,12 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
-  getNonNullResolvedInstructionInput,
   type InstructionAccountInput,
   type InstructionAccountInputAddress,
   type InstructionSignerInput,
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { findArticuloPda, findMovimientoPda } from "../pdas";
 import { BITACORA_INVENTARIO_PROGRAM_ADDRESS } from "../programs";
 
 export const CORREGIR_CANTIDAD_DISCRIMINATOR: ReadonlyUint8Array =
@@ -131,157 +128,6 @@ export function getCorregirCantidadInstructionDataCodec(): Codec<
     getCorregirCantidadInstructionDataEncoder(),
     getCorregirCantidadInstructionDataDecoder(),
   );
-}
-
-export type CorregirCantidadAsyncInput<
-  TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountAlmacen extends InstructionAccountInput = InstructionAccountInput,
-  TAccountArticulo extends InstructionAccountInput = InstructionAccountInput,
-  TAccountMovimiento extends InstructionAccountInput = InstructionAccountInput,
-> = {
-  owner: TAccountOwner;
-  almacen: TAccountAlmacen;
-  articulo?: TAccountArticulo;
-  movimiento?: TAccountMovimiento;
-  idArticulo: CorregirCantidadInstructionDataArgs["idArticulo"];
-  folio: CorregirCantidadInstructionDataArgs["folio"];
-  nuevaCantidad: CorregirCantidadInstructionDataArgs["nuevaCantidad"];
-};
-
-export async function getCorregirCantidadInstructionAsync<
-  TAccountOwner extends InstructionSignerInput,
-  TAccountAlmacen extends InstructionAccountInput,
-  TAccountArticulo extends InstructionAccountInput,
-  TAccountMovimiento extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof BITACORA_INVENTARIO_PROGRAM_ADDRESS,
->(
-  input: CorregirCantidadAsyncInput<
-    TAccountOwner,
-    TAccountAlmacen,
-    TAccountArticulo,
-    TAccountMovimiento
-  >,
-  config?: {
-    programAddress?: TProgramAddress | { readonly address: TProgramAddress };
-  },
-): Promise<
-  CorregirCantidadInstruction<
-    TProgramAddress,
-    ResolvedInstructionAccountMeta<
-      TAccountOwner,
-      InstructionAccountInputAddress<TAccountOwner>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountAlmacen,
-      InstructionAccountInputAddress<TAccountAlmacen>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountArticulo,
-      InstructionAccountInputAddress<TAccountArticulo>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountMovimiento,
-      InstructionAccountInputAddress<TAccountMovimiento>
-    >
-  >
-> {
-  // Program address.
-  const programAddressInput =
-    config?.programAddress ?? BITACORA_INVENTARIO_PROGRAM_ADDRESS;
-  const programAddress =
-    typeof programAddressInput === "string"
-      ? programAddressInput
-      : programAddressInput.address;
-
-  // Account meta helper.
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
-
-  // Original accounts.
-  const originalAccounts = {
-    owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
-    almacen: {
-      value: input.almacen ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    articulo: {
-      value: input.articulo ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    movimiento: {
-      value: input.movimiento ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedInstructionAccount
-  >;
-
-  // Original args.
-  const args = { ...input };
-
-  // Resolve default values.
-  if (!accounts.articulo.value) {
-    accounts.articulo.value = await findArticuloPda(
-      {
-        almacen: getAddressFromResolvedInstructionAccount(
-          "almacen",
-          accounts.almacen.value,
-        ),
-        idArticulo: getNonNullResolvedInstructionInput(
-          "idArticulo",
-          args.idArticulo,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.movimiento.value) {
-    accounts.movimiento.value = await findMovimientoPda(
-      {
-        articulo: getAddressFromResolvedInstructionAccount(
-          "articulo",
-          accounts.articulo.value,
-        ),
-        folio: getNonNullResolvedInstructionInput("folio", args.folio),
-      },
-      { programAddress },
-    );
-  }
-
-  return Object.freeze({
-    accounts: [
-      getAccountMeta("owner", accounts.owner),
-      getAccountMeta("almacen", accounts.almacen),
-      getAccountMeta("articulo", accounts.articulo),
-      getAccountMeta("movimiento", accounts.movimiento),
-    ],
-    data: getCorregirCantidadInstructionDataEncoder().encode(
-      args as CorregirCantidadInstructionDataArgs,
-    ),
-    programAddress,
-  } as CorregirCantidadInstruction<
-    TProgramAddress,
-    ResolvedInstructionAccountMeta<
-      TAccountOwner,
-      InstructionAccountInputAddress<TAccountOwner>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountAlmacen,
-      InstructionAccountInputAddress<TAccountAlmacen>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountArticulo,
-      InstructionAccountInputAddress<TAccountArticulo>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountMovimiento,
-      InstructionAccountInputAddress<TAccountMovimiento>
-    >
-  >);
 }
 
 export type CorregirCantidadInput<

@@ -41,15 +41,12 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
-  getNonNullResolvedInstructionInput,
   type InstructionAccountInput,
   type InstructionAccountInputAddress,
   type InstructionSignerInput,
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { findArticuloPda, findMovimientoPda } from "../pdas";
 import { BITACORA_INVENTARIO_PROGRAM_ADDRESS } from "../programs";
 import {
   getTipoMovimientoDecoder,
@@ -153,182 +150,6 @@ export function getRegistrarMovimientoInstructionDataCodec(): Codec<
     getRegistrarMovimientoInstructionDataEncoder(),
     getRegistrarMovimientoInstructionDataDecoder(),
   );
-}
-
-export type RegistrarMovimientoAsyncInput<
-  TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountAlmacen extends InstructionAccountInput = InstructionAccountInput,
-  TAccountArticulo extends InstructionAccountInput = InstructionAccountInput,
-  TAccountMovimiento extends InstructionAccountInput = InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput =
-    InstructionAccountInput,
-> = {
-  owner: TAccountOwner;
-  almacen: TAccountAlmacen;
-  articulo?: TAccountArticulo;
-  movimiento?: TAccountMovimiento;
-  systemProgram?: TAccountSystemProgram;
-  idArticulo: RegistrarMovimientoInstructionDataArgs["idArticulo"];
-  folio: RegistrarMovimientoInstructionDataArgs["folio"];
-  tipo: RegistrarMovimientoInstructionDataArgs["tipo"];
-  motivo: RegistrarMovimientoInstructionDataArgs["motivo"];
-  cantidad: RegistrarMovimientoInstructionDataArgs["cantidad"];
-};
-
-export async function getRegistrarMovimientoInstructionAsync<
-  TAccountOwner extends InstructionSignerInput,
-  TAccountAlmacen extends InstructionAccountInput,
-  TAccountArticulo extends InstructionAccountInput,
-  TAccountMovimiento extends InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof BITACORA_INVENTARIO_PROGRAM_ADDRESS,
->(
-  input: RegistrarMovimientoAsyncInput<
-    TAccountOwner,
-    TAccountAlmacen,
-    TAccountArticulo,
-    TAccountMovimiento,
-    TAccountSystemProgram
-  >,
-  config?: {
-    programAddress?: TProgramAddress | { readonly address: TProgramAddress };
-  },
-): Promise<
-  RegistrarMovimientoInstruction<
-    TProgramAddress,
-    ResolvedInstructionAccountMeta<
-      TAccountOwner,
-      InstructionAccountInputAddress<TAccountOwner>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountAlmacen,
-      InstructionAccountInputAddress<TAccountAlmacen>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountArticulo,
-      InstructionAccountInputAddress<TAccountArticulo>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountMovimiento,
-      InstructionAccountInputAddress<TAccountMovimiento>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
-    >
-  >
-> {
-  // Program address.
-  const programAddressInput =
-    config?.programAddress ?? BITACORA_INVENTARIO_PROGRAM_ADDRESS;
-  const programAddress =
-    typeof programAddressInput === "string"
-      ? programAddressInput
-      : programAddressInput.address;
-
-  // Account meta helper.
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
-
-  // Original accounts.
-  const originalAccounts = {
-    owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
-    almacen: {
-      value: input.almacen ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    articulo: {
-      value: input.articulo ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    movimiento: {
-      value: input.movimiento ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    systemProgram: {
-      value: input.systemProgram ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedInstructionAccount
-  >;
-
-  // Original args.
-  const args = { ...input };
-
-  // Resolve default values.
-  if (!accounts.articulo.value) {
-    accounts.articulo.value = await findArticuloPda(
-      {
-        almacen: getAddressFromResolvedInstructionAccount(
-          "almacen",
-          accounts.almacen.value,
-        ),
-        idArticulo: getNonNullResolvedInstructionInput(
-          "idArticulo",
-          args.idArticulo,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.movimiento.value) {
-    accounts.movimiento.value = await findMovimientoPda(
-      {
-        articulo: getAddressFromResolvedInstructionAccount(
-          "articulo",
-          accounts.articulo.value,
-        ),
-        folio: getNonNullResolvedInstructionInput("folio", args.folio),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-
-  return Object.freeze({
-    accounts: [
-      getAccountMeta("owner", accounts.owner),
-      getAccountMeta("almacen", accounts.almacen),
-      getAccountMeta("articulo", accounts.articulo),
-      getAccountMeta("movimiento", accounts.movimiento),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-    ],
-    data: getRegistrarMovimientoInstructionDataEncoder().encode(
-      args as RegistrarMovimientoInstructionDataArgs,
-    ),
-    programAddress,
-  } as RegistrarMovimientoInstruction<
-    TProgramAddress,
-    ResolvedInstructionAccountMeta<
-      TAccountOwner,
-      InstructionAccountInputAddress<TAccountOwner>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountAlmacen,
-      InstructionAccountInputAddress<TAccountAlmacen>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountArticulo,
-      InstructionAccountInputAddress<TAccountArticulo>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountMovimiento,
-      InstructionAccountInputAddress<TAccountMovimiento>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
-    >
-  >);
 }
 
 export type RegistrarMovimientoInput<

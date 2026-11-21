@@ -39,15 +39,12 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
-  getNonNullResolvedInstructionInput,
   type InstructionAccountInput,
   type InstructionAccountInputAddress,
   type InstructionSignerInput,
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { findAlmacenPda } from "../pdas";
 import { BITACORA_INVENTARIO_PROGRAM_ADDRESS } from "../programs";
 
 export const CREAR_ALMACEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -120,130 +117,6 @@ export function getCrearAlmacenInstructionDataCodec(): Codec<
     getCrearAlmacenInstructionDataEncoder(),
     getCrearAlmacenInstructionDataDecoder(),
   );
-}
-
-export type CrearAlmacenAsyncInput<
-  TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountAlmacen extends InstructionAccountInput = InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput =
-    InstructionAccountInput,
-> = {
-  owner: TAccountOwner;
-  almacen?: TAccountAlmacen;
-  systemProgram?: TAccountSystemProgram;
-  nombreAlmacen: CrearAlmacenInstructionDataArgs["nombreAlmacen"];
-};
-
-export async function getCrearAlmacenInstructionAsync<
-  TAccountOwner extends InstructionSignerInput,
-  TAccountAlmacen extends InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof BITACORA_INVENTARIO_PROGRAM_ADDRESS,
->(
-  input: CrearAlmacenAsyncInput<
-    TAccountOwner,
-    TAccountAlmacen,
-    TAccountSystemProgram
-  >,
-  config?: {
-    programAddress?: TProgramAddress | { readonly address: TProgramAddress };
-  },
-): Promise<
-  CrearAlmacenInstruction<
-    TProgramAddress,
-    ResolvedInstructionAccountMeta<
-      TAccountOwner,
-      InstructionAccountInputAddress<TAccountOwner>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountAlmacen,
-      InstructionAccountInputAddress<TAccountAlmacen>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
-    >
-  >
-> {
-  // Program address.
-  const programAddressInput =
-    config?.programAddress ?? BITACORA_INVENTARIO_PROGRAM_ADDRESS;
-  const programAddress =
-    typeof programAddressInput === "string"
-      ? programAddressInput
-      : programAddressInput.address;
-
-  // Account meta helper.
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
-
-  // Original accounts.
-  const originalAccounts = {
-    owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
-    almacen: {
-      value: input.almacen ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    systemProgram: {
-      value: input.systemProgram ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedInstructionAccount
-  >;
-
-  // Original args.
-  const args = { ...input };
-
-  // Resolve default values.
-  if (!accounts.almacen.value) {
-    accounts.almacen.value = await findAlmacenPda(
-      {
-        nombreAlmacen: getNonNullResolvedInstructionInput(
-          "nombreAlmacen",
-          args.nombreAlmacen,
-        ),
-        owner: getAddressFromResolvedInstructionAccount(
-          "owner",
-          accounts.owner.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-
-  return Object.freeze({
-    accounts: [
-      getAccountMeta("owner", accounts.owner),
-      getAccountMeta("almacen", accounts.almacen),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-    ],
-    data: getCrearAlmacenInstructionDataEncoder().encode(
-      args as CrearAlmacenInstructionDataArgs,
-    ),
-    programAddress,
-  } as CrearAlmacenInstruction<
-    TProgramAddress,
-    ResolvedInstructionAccountMeta<
-      TAccountOwner,
-      InstructionAccountInputAddress<TAccountOwner>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountAlmacen,
-      InstructionAccountInputAddress<TAccountAlmacen>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
-    >
-  >);
 }
 
 export type CrearAlmacenInput<
