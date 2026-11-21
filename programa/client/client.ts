@@ -46,9 +46,24 @@ const pdaMovimiento = (articulo: PublicKey, folio: string) =>
   )[0];
 
 //////////////////// Helpers ////////////////////
-async function mostrarEstado(titulo: string, idArticulo: number) {
-  const articulo = await pg.program.account.articulo.fetch(pdaArticulo(idArticulo));
-  console.log(`${titulo} -> stock: ${articulo.stock}, movimientos activos: ${articulo.movimientos.length}`);
+async function esperarCuenta(direccion: PublicKey, intentos = 40) {
+  for (let i = 0; i < intentos; i++) {
+    const info = await pg.connection.getAccountInfo(direccion, "confirmed");
+    if (info) return;
+    await pg.connection.getSlot("confirmed"); // cada consulta toma un momento y hace de pausa
+  }
+  throw new Error("La cuenta no apareció en la red: " + direccion.toString());
+}
+
+async function mostrarEstado(titulo: string, idArticulo: number, stockEsperado: number) {
+  await esperarCuenta(pdaArticulo(idArticulo));
+  let articulo = await pg.program.account.articulo.fetch(pdaArticulo(idArticulo), "confirmed");
+  for (let i = 0; i < 40 && articulo.stock !== stockEsperado; i++) {
+    await pg.connection.getSlot("confirmed");
+    articulo = await pg.program.account.articulo.fetch(pdaArticulo(idArticulo), "confirmed");
+  }
+  const ok = articulo.stock === stockEsperado ? "OK" : "NO COINCIDE";
+  console.log(`${titulo} -> stock: ${articulo.stock} (esperado ${stockEsperado}) ${ok}, movimientos activos: ${articulo.movimientos.length}`);
 }
 
 async function debeFallar(descripcion: string, accion: () => Promise<unknown>) {
@@ -70,11 +85,12 @@ console.log("Almacen creado:", pdaAlmacen.toString());
 //////////////////// 2. Articulo ////////////////////
 // El id lo asigna el programa: el primero siempre es 1.
 const idArticulo = 1;
+console.log("PDA esperada del artículo 1:", pdaArticulo(1).toString());
 await pg.program.methods
   .crearArticulo("Tornillo 1/4", "pza")
   .accounts({ owner, almacen: pdaAlmacen, articulo: pdaArticulo(idArticulo) })
   .rpc();
-await mostrarEstado("Articulo creado", idArticulo);
+await mostrarEstado("Articulo creado", idArticulo, 0);
 
 //////////////////// 3. Entrada de 100 ////////////////////
 await pg.program.methods
@@ -86,7 +102,7 @@ await pg.program.methods
     movimiento: pdaMovimiento(pdaArticulo(idArticulo), folioEntrada),
   })
   .rpc();
-await mostrarEstado("Despues de entrada de 100", idArticulo); // stock 100
+await mostrarEstado("Despues de entrada de 100", idArticulo, 100); // stock 100
 
 //////////////////// 4. Salida de 30 ////////////////////
 await pg.program.methods
@@ -98,7 +114,7 @@ await pg.program.methods
     movimiento: pdaMovimiento(pdaArticulo(idArticulo), folioSalida),
   })
   .rpc();
-await mostrarEstado("Despues de salida de 30", idArticulo); // stock 70
+await mostrarEstado("Despues de salida de 30", idArticulo, 70); // stock 70
 
 //////////////////// 5. Casos que el programa debe rechazar ////////////////////
 await debeFallar("salida mayor al stock", () =>
@@ -145,7 +161,7 @@ await pg.program.methods
     movimiento: pdaMovimiento(pdaArticulo(idArticulo), folioSalida),
   })
   .rpc();
-await mostrarEstado("Despues de corregir salida a 40", idArticulo); // stock 60
+await mostrarEstado("Despues de corregir salida a 40", idArticulo, 60); // stock 60
 
 //////////////////// 7. Anular la salida ////////////////////
 await pg.program.methods
@@ -157,7 +173,7 @@ await pg.program.methods
     movimiento: pdaMovimiento(pdaArticulo(idArticulo), folioSalida),
   })
   .rpc();
-await mostrarEstado("Despues de anular la salida", idArticulo); // stock 100
+await mostrarEstado("Despues de anular la salida", idArticulo, 100); // stock 100
 
 //////////////////// 8. Resumen ////////////////////
 const almacen = await pg.program.account.almacen.fetch(pdaAlmacen);

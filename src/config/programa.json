@@ -1,6 +1,6 @@
 {
-  "programId": "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
-  "esReferencia": true,
-  "origen": "IDL de ejemplo con direccion marcador. Escritura bloqueada.",
-  "idlSha256": "323d21a57fd662a96afa8802716d1223607b30b913a0fc4458ac8abe02c972f3"
+  "programId": "2pqFML2uKMCM2VDAj1gHtLcmzEvEr7o274oEf67nrLGD",
+  "esReferencia": false,
+  "origen": "IDL importado de tu despliegue.",
+  "idlSha256": "3c36fb81e43b6ecf79616b8d815a9d99e82fd26d7f3f7bc802272c2ff90ff4b2"
 }

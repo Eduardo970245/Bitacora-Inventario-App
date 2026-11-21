@@ -162,18 +162,21 @@ test('se valida el contrato IDL y la normalizacion no cambia el orden ni tipos',
 });
 
 test('el validador acepta el tipo enum tanto en formato moderno como en legacy', () => {
+  const norm = (v: string) => v.toLowerCase().replace(/_/g, '');
   const legacy = idlMarcador() as unknown as Record<string, any>;
-  const ix = legacy.instructions.find((item: { name: string }) => item.name === 'registrar_movimiento');
+  const ix = legacy.instructions.find((item: { name: string }) => norm(item.name) === 'registrarmovimiento');
   ix.args[2].type = { defined: 'TipoMovimiento' }; // Anchor 0.29 y anteriores
-  const movimiento = legacy.types.find((item: { name: string }) => item.name === 'Movimiento');
-  movimiento.type.fields[1].type = { defined: 'TipoMovimiento' };
+  const cuenta = legacy.accounts.find((item: { name: string }) => norm(item.name) === 'movimiento');
+  const esquema = cuenta.type ?? legacy.types.find((item: { name: string }) => norm(item.name) === 'movimiento').type;
+  esquema.fields[1].type = { defined: 'TipoMovimiento' };
   assert.equal(validarIdl(legacy).programId, REFERENCIA_ID);
   ix.args[2].type = 'u8';
   assert.throws(() => validarIdl(legacy), /tipos de los argumentos/);
 });
 
 test('un IDL con otro nombre de programa se rechaza con un mensaje claro', () => {
-  const ajeno = idlMarcador();
-  ajeno.metadata.name = 'registro';
+  const ajeno = idlMarcador() as unknown as Record<string, any>;
+  ajeno.name = 'registro'; // formato legacy
+  if (ajeno.metadata) ajeno.metadata.name = 'registro'; // formato moderno
   assert.throws(() => validarIdl(ajeno), /bitacora_inventario/);
 });
