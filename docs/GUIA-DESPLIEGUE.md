@@ -1,5 +1,9 @@
 # Guía de despliegue paso a paso
 
+> **¿Solo quieres usar la app con el programa que ya está desplegado?** No necesitas esta guía. Sigue la *Opción A* del README (`npm ci`, `npm run verificar`, `npm run dev`): el `idl.json`, `programa.json` y el cliente generado ya apuntan al Program ID publicado.
+>
+> **Esta guía es para desplegar tu propia copia del programa** con un Program ID distinto. Los pasos 3 y 4 (exportar e importar el IDL) solo se hacen en ese caso, y sustituyen el IDL y el Program ID del repositorio por los tuyos.
+
 Orden general: **Playground (compilar y desplegar) → exportar IDL → importarlo en este repositorio → ejecutar la app con tu wallet del navegador.**
 
 ## 0. Dos wallets, dos funciones
@@ -40,6 +44,8 @@ El IDL se genera al compilar. Búscalo en el explorador de archivos de Playgroun
 2. Comprueba que el nombre del programa sea `bitacora_inventario`: la app rechaza IDLs de otro programa.
 
 ## 4. Importar el IDL en este repositorio
+
+Este paso reemplaza `idl.json`, `src/config/programa.json` y `clients/js/` por los de tu despliegue. Después copia tu Program ID en `declare_id!` de `programa/src/lib.rs`.
 
 ```bash
 npm install
