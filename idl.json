@@ -1,99 +1,55 @@
 {
-  "address": "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
-  "metadata": {
-    "name": "bitacora_inventario",
-    "version": "0.1.0",
-    "spec": "0.1.0",
-    "description": "Bitacora de inventario en Solana"
-  },
+  "version": "0.1.0",
+  "name": "bitacora_inventario",
   "instructions": [
     {
-      "name": "crear_almacen",
-      "discriminator": [
-        25,
-        255,
-        10,
-        80,
-        201,
-        156,
-        122,
-        61
-      ],
+      "name": "crearAlmacen",
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
-          "signer": true
+          "isMut": true,
+          "isSigner": true
         },
         {
           "name": "almacen",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  108,
-                  109,
-                  97,
-                  99,
-                  101,
-                  110
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "nombre_almacen"
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
         {
-          "name": "nombre_almacen",
+          "name": "nombreAlmacen",
           "type": "string"
         }
       ]
     },
     {
-      "name": "crear_articulo",
-      "discriminator": [
-        191,
-        38,
-        187,
-        57,
-        24,
-        96,
-        154,
-        93
-      ],
+      "name": "crearArticulo",
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
-          "signer": true
+          "isMut": true,
+          "isSigner": true
         },
         {
           "name": "almacen",
-          "writable": true
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "articulo",
-          "writable": true
+          "isMut": true,
+          "isSigner": false
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -108,94 +64,37 @@
       ]
     },
     {
-      "name": "registrar_movimiento",
-      "discriminator": [
-        33,
-        55,
-        0,
-        0,
-        62,
-        236,
-        142,
-        30
-      ],
+      "name": "registrarMovimiento",
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
-          "signer": true
+          "isMut": true,
+          "isSigner": true
         },
         {
-          "name": "almacen"
+          "name": "almacen",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "articulo",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  117,
-                  108,
-                  111
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "almacen"
-              },
-              {
-                "kind": "arg",
-                "path": "id_articulo"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "movimiento",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  111,
-                  118,
-                  105,
-                  109,
-                  105,
-                  101,
-                  110,
-                  116,
-                  111
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "articulo"
-              },
-              {
-                "kind": "arg",
-                "path": "folio"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
         {
-          "name": "id_articulo",
+          "name": "idArticulo",
           "type": "u16"
         },
         {
@@ -205,9 +104,7 @@
         {
           "name": "tipo",
           "type": {
-            "defined": {
-              "name": "TipoMovimiento"
-            }
+            "defined": "TipoMovimiento"
           }
         },
         {
@@ -221,89 +118,32 @@
       ]
     },
     {
-      "name": "corregir_cantidad",
-      "discriminator": [
-        122,
-        31,
-        192,
-        60,
-        141,
-        226,
-        194,
-        236
-      ],
+      "name": "corregirCantidad",
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "isMut": false,
+          "isSigner": true
         },
         {
-          "name": "almacen"
+          "name": "almacen",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "articulo",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  117,
-                  108,
-                  111
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "almacen"
-              },
-              {
-                "kind": "arg",
-                "path": "id_articulo"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "movimiento",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  111,
-                  118,
-                  105,
-                  109,
-                  105,
-                  101,
-                  110,
-                  116,
-                  111
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "articulo"
-              },
-              {
-                "kind": "arg",
-                "path": "folio"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
         {
-          "name": "id_articulo",
+          "name": "idArticulo",
           "type": "u16"
         },
         {
@@ -311,96 +151,38 @@
           "type": "string"
         },
         {
-          "name": "nueva_cantidad",
+          "name": "nuevaCantidad",
           "type": "u32"
         }
       ]
     },
     {
-      "name": "anular_movimiento",
-      "discriminator": [
-        75,
-        190,
-        187,
-        230,
-        131,
-        82,
-        150,
-        167
-      ],
+      "name": "anularMovimiento",
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
-          "signer": true
+          "isMut": true,
+          "isSigner": true
         },
         {
-          "name": "almacen"
+          "name": "almacen",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "articulo",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  117,
-                  108,
-                  111
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "almacen"
-              },
-              {
-                "kind": "arg",
-                "path": "id_articulo"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "movimiento",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  111,
-                  118,
-                  105,
-                  109,
-                  105,
-                  101,
-                  110,
-                  116,
-                  111
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "articulo"
-              },
-              {
-                "kind": "arg",
-                "path": "folio"
-              }
-            ]
-          }
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
         {
-          "name": "id_articulo",
+          "name": "idArticulo",
           "type": "u16"
         },
         {
@@ -413,42 +195,105 @@
   "accounts": [
     {
       "name": "Almacen",
-      "discriminator": [
-        251,
-        90,
-        16,
-        16,
-        222,
-        50,
-        244,
-        165
-      ]
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "nombreAlmacen",
+            "type": "string"
+          },
+          {
+            "name": "articulos",
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "idCounter",
+            "type": "u16"
+          }
+        ]
+      }
     },
     {
       "name": "Articulo",
-      "discriminator": [
-        194,
-        103,
-        185,
-        207,
-        106,
-        174,
-        22,
-        182
-      ]
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "idArticulo",
+            "type": "u16"
+          },
+          {
+            "name": "nombre",
+            "type": "string"
+          },
+          {
+            "name": "unidad",
+            "type": "string"
+          },
+          {
+            "name": "stock",
+            "type": "u32"
+          },
+          {
+            "name": "movimientos",
+            "type": {
+              "vec": "publicKey"
+            }
+          }
+        ]
+      }
     },
     {
       "name": "Movimiento",
-      "discriminator": [
-        231,
-        250,
-        118,
-        120,
-        13,
-        138,
-        228,
-        179
-      ]
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "folio",
+            "type": "string"
+          },
+          {
+            "name": "tipo",
+            "type": {
+              "defined": "TipoMovimiento"
+            }
+          },
+          {
+            "name": "motivo",
+            "type": "string"
+          },
+          {
+            "name": "cantidad",
+            "type": "u32"
+          },
+          {
+            "name": "fecha",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "TipoMovimiento",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Entrada"
+          },
+          {
+            "name": "Salida"
+          }
+        ]
+      }
     }
   ],
   "errors": [
@@ -488,108 +333,7 @@
       "msg": "Error, el articulo alcanzo el limite de movimientos activos"
     }
   ],
-  "types": [
-    {
-      "name": "Almacen",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "nombre_almacen",
-            "type": "string"
-          },
-          {
-            "name": "articulos",
-            "type": {
-              "vec": "pubkey"
-            }
-          },
-          {
-            "name": "id_counter",
-            "type": "u16"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Articulo",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "id_articulo",
-            "type": "u16"
-          },
-          {
-            "name": "nombre",
-            "type": "string"
-          },
-          {
-            "name": "unidad",
-            "type": "string"
-          },
-          {
-            "name": "stock",
-            "type": "u32"
-          },
-          {
-            "name": "movimientos",
-            "type": {
-              "vec": "pubkey"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Movimiento",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "folio",
-            "type": "string"
-          },
-          {
-            "name": "tipo",
-            "type": {
-              "defined": {
-                "name": "TipoMovimiento"
-              }
-            }
-          },
-          {
-            "name": "motivo",
-            "type": "string"
-          },
-          {
-            "name": "cantidad",
-            "type": "u32"
-          },
-          {
-            "name": "fecha",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "TipoMovimiento",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Entrada"
-          },
-          {
-            "name": "Salida"
-          }
-        ]
-      }
-    }
-  ]
+  "metadata": {
+    "address": "2pqFML2uKMCM2VDAj1gHtLcmzEvEr7o274oEf67nrLGD"
+  }
 }
